@@ -7,7 +7,7 @@
             "command": "cmd",
             "args": [
                 "/c",
-                "gcc src/*.c -o MiPrograma.exe -O1 -Wall -I include -L lib -lraylib -lopengl32 -lgdi32 -lwinmm && MiPrograma.exe"
+                "gcc src/*.c -o MiPrograma.exe -O1 -Wall -I include -L lib -lraylib -lopengl32 -lgdi32 -lwinmm -luser32 && MiPrograma.exe"
             ],
             "group": {
                 "kind": "build",
