@@ -1,2 +1,2 @@
-# SINA-VISUAL
+# PROYECTO LENGUAJE DE PROGRAMACION
 Proyecto de Laboratorio de programación
