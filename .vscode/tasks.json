@@ -4,19 +4,17 @@
         {
             "label": "Compilar y Arrancar de una",
             "type": "shell",
-            "command": "cmd",
+            "command": "C:\\msys64\\usr\\bin\\bash.exe",
             "args": [
-                "/c",
-                "gcc src/*.c -o MiPrograma.exe -O1 -Wall -I include -L lib -lraylib -lopengl32 -lgdi32 -lwinmm -luser32 && MiPrograma.exe"
+                "-lc",
+                "export MSYSTEM=UCRT64; source /etc/profile; cd /c/Users/Aaron\\ Alejandro/Desktop/PROYECTO && gcc src/*.c -o MiPrograma.exe -O1 -Wall -I include $(pkg-config --cflags --libs raylib) && ./MiPrograma.exe"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "Compila y ejecuta usando CMD para evitar errores de PowerShell"
+            "problemMatcher": ["$gcc"],
+            "detail": "Compila usando MSYS2 UCRT64"
         }
     ]
 }

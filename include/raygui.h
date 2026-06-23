@@ -3358,6 +3358,7 @@ int GuiColorPanel(Rectangle bounds, const char *text, Color *color)
 
     Vector3 vcolor = { (float)color->r/255.0f, (float)color->g/255.0f, (float)color->b/255.0f };
     Vector3 hsv = ConvertRGBtoHSV(vcolor);
+    (void)text;
 
     pickerSelector.x = bounds.x + (float)hsv.y*bounds.width;            // HSV: Saturation
     pickerSelector.y = bounds.y + (1.0f - (float)hsv.z)*bounds.height;  // HSV: Value
@@ -3437,6 +3438,7 @@ int GuiColorBarAlpha(Rectangle bounds, const char *text, float *alpha)
 
     int result = 0;
     GuiState state = guiState;
+    (void)text;
     Rectangle selector = { (float)bounds.x + (*alpha)*bounds.width - GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_HEIGHT)/2, (float)bounds.y - GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_OVERFLOW), (float)GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_HEIGHT), (float)bounds.height + GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_OVERFLOW)*2 };
 
     // Update control
@@ -3523,6 +3525,7 @@ int GuiColorBarHue(Rectangle bounds, const char *text, float *hue)
 {
     int result = 0;
     GuiState state = guiState;
+    (void)text;
     Rectangle selector = { (float)bounds.x - GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_OVERFLOW), (float)bounds.y + (*hue)/360.0f*bounds.height - GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_HEIGHT)/2, (float)bounds.width + GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_OVERFLOW)*2, (float)GuiGetStyle(COLORPICKER, HUEBAR_SELECTOR_HEIGHT) };
 
     // Update control
@@ -3612,6 +3615,7 @@ int GuiColorBarHue(Rectangle bounds, const char *text, float *hue)
 int GuiColorPicker(Rectangle bounds, const char *text, Color *color)
 {
     int result = 0;
+    (void)text;
 
     Color temp = { 200, 0, 0, 255 };
     if (color == NULL) color = &temp;
@@ -3643,6 +3647,7 @@ int GuiColorPicker(Rectangle bounds, const char *text, Color *color)
 int GuiColorPickerHSV(Rectangle bounds, const char *text, Vector3 *colorHsv)
 {
     int result = 0;
+    (void)text;
 
     Vector3 tempHsv = { 0 };
 
@@ -3668,6 +3673,7 @@ int GuiColorPanelHSV(Rectangle bounds, const char *text, Vector3 *colorHsv)
 {
     int result = 0;
     GuiState state = guiState;
+    (void)text;
     Vector2 pickerSelector = { 0 };
 
     const Color colWhite = { 255, 255, 255, 255 };
@@ -3881,6 +3887,7 @@ int GuiTextInputBox(Rectangle bounds, const char *title, const char *message, co
 // https://stackoverflow.com/questions/4435450/2d-opengl-drawing-lines-that-dont-exactly-fit-pixel-raster
 int GuiGrid(Rectangle bounds, const char *text, float spacing, int subdivs, Vector2 *mouseCell)
 {
+    (void)text;
     // Grid lines alpha amount
     #if !defined(RAYGUI_GRID_ALPHA)
         #define RAYGUI_GRID_ALPHA    0.15f
@@ -4325,6 +4332,7 @@ void GuiSetIconScale(int scale)
 static void GuiLoadStyleFromMemory(const unsigned char *fileData, int dataSize)
 {
     unsigned char *fileDataPtr = (unsigned char *)fileData;
+    (void)dataSize;
 
     char signature[5] = { 0 };
     short version = 0;
@@ -4680,7 +4688,6 @@ const char **GetTextLines(const char *text, int *count)
     int textSize = (int)strlen(text);
 
     lines[0] = text;
-    int len = 0;
     *count = 1;
     //int lineSize = 0;   // Stores current line size, not returned
 
@@ -4688,16 +4695,14 @@ const char **GetTextLines(const char *text, int *count)
     {
         if (text[i] == '\n')
         {
-            //lineSize = len;
+            //lineSize = 0;
             k++;
-            lines[k] = &text[i + 1];     // WARNING: next value is valid?
-            len = 0;
+            lines[k] = &text[i + 1];
             *count += 1;
         }
-        else len++;
     }
 
-    //lines[*count - 1].size = len;
+    //lines[*count - 1].size = 0;
 
     return lines;
 }

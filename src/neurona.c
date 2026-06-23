@@ -207,7 +207,7 @@ float* entrenar_neurona(Neurona *n, Dataset *datos, int epocas, float tasa) {
         // Una época = recorrer todo el dataset
         for (int i = 0; i < datos->num_muestras; i++) {
             // Forward propagation
-            float salida = forward_propagation(n, datos->entradas[i]);
+            forward_propagation(n, datos->entradas[i]);
             
             // Backward propagation
             backward_propagation(n, datos->entradas[i], datos->salidas[i], tasa);
@@ -575,7 +575,6 @@ Dataset* cargar_dataset(const char *nombre_archivo) {
         }
         
         // Validar y convertir cada valor
-        int columna_actual = 0;
         int error_fila = 0;
         
         // Leer entradas

@@ -101,7 +101,6 @@ PantallaActual DibujarPantallaCargar(Dataset **datos) {
 
 PantallaActual DibujarPantallaVisualizar(Dataset *datos) {
     int anchoPantalla = GetScreenWidth();
-    int altoPantalla = GetScreenHeight();
     
     DrawText("VISUALIZADOR DE MATRIZ", (anchoPantalla / 2) - 350, 50, 50, DARKGRAY);
 
