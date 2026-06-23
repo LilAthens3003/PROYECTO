@@ -2,7 +2,7 @@
  neurona.h - Módulo de Neurona Artificial
  =============================================================
  
- DESCRIPCIÓN:
+DESCRIPCIÓN:
 Este módulo implementa una neurona artificial que puede:
 Procesar imágenes representadas como vectores numéricos
 Aprender mediante forward y backward propagation
@@ -212,14 +212,14 @@ float sigmoid(float x);
  * Necesaria para el cálculo de backpropagation
  * 
  * PARÁMETROS:
- *   x - Valor de entrada (salida de sigmoid)
+ *   s - Salida de la función sigmoid
  * 
  * RETORNO:
- *   Derivada en el punto x
+ *   Derivada en el punto s
  * 
- * FÓRMULA: f'(x) = f(x) * (1 - f(x))
+ * FÓRMULA: f'(s) = s * (1 - s)
  */
-float sigmoid_derivada(float x);
+float sigmoid_derivada(float s);
 
 /**
  * producto_punto - Calcula el producto punto de dos vectores
