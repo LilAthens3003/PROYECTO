@@ -2,21 +2,35 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Compilar y Arrancar de una",
+            "label": "Compilar (Santiago - CMD)",
             "type": "shell",
             "command": "cmd",
             "args": [
                 "/c",
                 "gcc src/*.c -o MiPrograma.exe -O1 -Wall -I include -L lib -lraylib -lopengl32 -lgdi32 -lwinmm -luser32 && MiPrograma.exe"
             ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Compila y ejecuta usando CMD para evitar errores de PowerShell"
+            "detail": "Compila y ejecuta usando CMD y la carpeta lib local (PC de Santiago)"
+        },
+        {
+            "label": "Compilar (Aaron - MSYS2)",
+            "type": "shell",
+            "command": "C:\\msys64\\usr\\bin\\bash.exe",
+            "args": [
+                "-lc",
+                "export MSYSTEM=UCRT64; source /etc/profile; gcc src/*.c -o MiPrograma.exe -O1 -Wall -I include $(pkg-config --cflags --libs raylib) && ./MiPrograma.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Compila usando MSYS2 y pkg-config (PC de Aaron)"
         }
     ]
 }
