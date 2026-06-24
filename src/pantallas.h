@@ -2,7 +2,8 @@
 #define PANTALLAS_H
 
 #include "raylib.h"
-#include "../include/neurona.h" // Importamos la estructura Dataset de Aarón
+#include "../include/dataset.h" // NUEVO ARCHIVO DE AARÓN
+#include "../include/neurona.h"
 
 typedef enum {
     PANTALLA_MENU,
@@ -22,8 +23,8 @@ PantallaActual DibujarPantallaCargar(Dataset **datos);
 
 
 PantallaActual DibujarPantallaVisualizar(Dataset *datos);
-PantallaActual DibujarPantallaEntrenamiento(void);
-PantallaActual DibujarPantallaGrafico(void);
-PantallaActual DibujarPantallaPrediccion(void);
+PantallaActual DibujarPantallaEntrenamiento(Neurona **neurona, Dataset *datos, int *epocaActual, int totalEpocas, bool *entrenando, float *errorActual, float *historialErrores);
+PantallaActual DibujarPantallaGrafico(float *historialErrores, int epocasEntrenadas);
+PantallaActual DibujarPantallaPrediccion(Neurona *neurona, Dataset *datos);
 
 #endif

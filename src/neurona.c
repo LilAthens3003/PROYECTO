@@ -1,31 +1,30 @@
-/* ================================================================
-   neurona.c - Implementación del Módulo de Neurona Artificial
-   ================================================================
-   
-   DESCRIPCIÓN:
-     Este archivo contiene la implementación completa de todas las
-     funciones declaradas en neurona.h. Incluye:
-     - Creación y destrucción de neurona
-     - Forward y backward propagation
-     - Carga y validación de datasets desde CSV
-     - Normalización de datos
-     - Funciones de depuración
-     - Manejo de errores con mensajes claros
-   
-   AUTOR: Alumno 1 - Matemática y Núcleo de IA
-   FECHA: 2026
-   VERSIÓN: 1.0
-   ================================================================ */
+// ================================================================
+// neurona.c - Implementación del Módulo de Neurona Artificial
+// ================================================================
+// 
+// DESCRIPCIÓN:
+//   Este archivo contiene la implementación completa de todas las
+//   funciones declaradas en neurona.h. Incluye:
+//   - Creación y destrucción de neurona
+//   - Forward y backward propagation (usando módulo matemáticas)
+//   - Entrenamiento y predicción
+//   - Integración con módulo dataset
+//   - Funciones de depuración
+//   - Manejo de errores con mensajes claros
+//
+// DEPENDENCIAS:
+//   - neurona.h (declaraciones)
+//   - dataset.h (para carga y manipulación de datos)
+//   - matematica.h (para funciones matemáticas especializadas)
+//
+// AUTOR: Alumno 1 - Matemática y Núcleo de IA
+// FECHA: 2026
+// VERSIÓN: 3.0 (Con matemáticas integradas)
+// ================================================================
 
 #include "../include/neurona.h"
-
-/* ================================================================
- MODIFICAR AQUÍ PARA CAMBIAR PRECISIÓN
- - 100.0f  → 2 decimales  (RECOMENDADO)
- - 1000.0f → 3 decimales
- - 10000.0f → 4 decimales
- ================================================================*/
-#define PRECISION_DECIMAL 100.0f
+#include "../include/dataset.h"     // Para carga y manipulación de datos
+#include "../include/matematica.h"  // ★ NUEVO: Para funciones matemáticas
 
 // ================================================================
 // 1. FUNCIONES DE CREACIÓN Y DESTRUCCIÓN
@@ -96,36 +95,7 @@ void inicializar_pesos_aleatorios(Neurona *n) {
 }
 
 // ================================================================
-// 2. FUNCIONES MATEMÁTICAS Y DE ACTIVACIÓN
-// ================================================================
-
-float sigmoid(float x) {
-    // Clamping para evitar overflow en exp()
-    if (x > 50.0f) return 1.0f;
-    if (x < -50.0f) return 0.0f;
-    return 1.0f / (1.0f + expf(-x));
-}
-
-float sigmoid_derivada(float x) {
-    float s = sigmoid(x);
-    return s * (1.0f - s);
-}
-
-float producto_punto(float *a, float *b, int n) {
-    if (a == NULL || b == NULL) {
-        mostrar_error("Error: Vector nulo en producto_punto.");
-        return 0.0f;
-    }
-    
-    float resultado = 0.0f;
-    for (int i = 0; i < n; i++) {
-        resultado += a[i] * b[i];
-    }
-    return resultado;
-}
-
-// ================================================================
-// 3. FUNCIONES PRINCIPALES DE LA NEURONA
+// 2. FUNCIONES PRINCIPALES DE LA NEURONA
 // ================================================================
 
 float forward_propagation(Neurona *n, float *entradas) {
@@ -140,13 +110,15 @@ float forward_propagation(Neurona *n, float *entradas) {
     }
     
     // 1. Calcular suma ponderada: Σ(entrada × peso)
-    float suma = producto_punto(entradas, n->pesos, n->num_entradas);
+    // ★ AHORA USA producto_punto_mat() del módulo matemáticas ★
+    float suma = producto_punto_mat(entradas, n->pesos, n->num_entradas);
     
     // 2. Agregar el bias
     suma += n->bias;
     
     // 3. Aplicar función de activación Sigmoid
-    n->salida = sigmoid(suma);
+    // ★ AHORA USA sigmoid_mat() del módulo matemáticas ★
+    n->salida = sigmoid_mat(suma);
     
     return n->salida;
 }
@@ -166,7 +138,8 @@ void backward_propagation(Neurona *n, float *entradas, float esperado, float tas
     n->error = esperado - n->salida;
     
     // 2. Calcular delta: error × derivada de la activación
-    float delta = n->error * sigmoid_derivada(n->salida);
+    // ★ AHORA USA sigmoid_derivada_mat() del módulo matemáticas ★
+    float delta = n->error * sigmoid_derivada_mat(n->salida);
     
     // 3. Actualizar cada peso: peso_nuevo = peso_viejo + tasa × delta × entrada
     for (int i = 0; i < n->num_entradas; i++) {
@@ -176,6 +149,10 @@ void backward_propagation(Neurona *n, float *entradas, float esperado, float tas
     // 4. Actualizar el bias
     n->bias += tasa * delta;
 }
+
+// ================================================================
+// 3. FUNCIONES DE ENTRENAMIENTO Y PREDICCIÓN
+// ================================================================
 
 float* entrenar_neurona(Neurona *n, Dataset *datos, int epocas, float tasa) {
     if (n == NULL) {
@@ -193,6 +170,12 @@ float* entrenar_neurona(Neurona *n, Dataset *datos, int epocas, float tasa) {
         return NULL;
     }
     
+    // ★ NUEVO: Validar el dataset antes de entrenar ★
+    if (!validar_dataset(datos)) {
+        mostrar_error("Error: Dataset inválido en entrenar_neurona.");
+        return NULL;
+    }
+    
     // Reservar memoria para el historial de errores
     float *historial = (float*)malloc(epocas * sizeof(float));
     if (historial == NULL) {
@@ -207,7 +190,7 @@ float* entrenar_neurona(Neurona *n, Dataset *datos, int epocas, float tasa) {
         // Una época = recorrer todo el dataset
         for (int i = 0; i < datos->num_muestras; i++) {
             // Forward propagation
-            float salida = forward_propagation(n, datos->entradas[i]);
+            forward_propagation(n, datos->entradas[i]);
             
             // Backward propagation
             backward_propagation(n, datos->entradas[i], datos->salidas[i], tasa);
@@ -230,10 +213,88 @@ float* entrenar_neurona(Neurona *n, Dataset *datos, int epocas, float tasa) {
     return historial;
 }
 
+/**
+ * entrenar_neurona_con_config - Entrena la neurona usando configuración
+ * 
+ * ★ NUEVA FUNCIÓN: Simplifica el entrenamiento desde el menú ★
+ * 
+ * PARÁMETROS:
+ *   n      - Puntero a la neurona
+ *   config - Puntero a la configuración
+ * 
+ * RETORNO:
+ *   Arreglo con historial de errores, o NULL si falla
+ */
+float* entrenar_neurona_con_config(Neurona *n, Configuracion *config) {
+    if (n == NULL) {
+        mostrar_error("Error: Neurona nula en entrenar_neurona_con_config.");
+        return NULL;
+    }
+    
+    if (config == NULL) {
+        mostrar_error("Error: Configuración nula en entrenar_neurona_con_config.");
+        return NULL;
+    }
+    
+    // Cargar dataset usando la configuración
+    Dataset *datos = cargar_dataset_desde_config(config);
+    if (datos == NULL) {
+        mostrar_error("Error: No se pudo cargar el dataset para entrenar.");
+        return NULL;
+    }
+    
+    // ★ MODIFICAR AQUÍ si los datos ya están normalizados ★
+    // Normalizar los datos (asumiendo que vienen de una imagen 0-255)
+    normalizar_dataset(datos, 255.0f);
+    
+    // Entrenar la neurona
+    float *historial = entrenar_neurona(n, datos, config->epocas, config->tasa_aprendizaje);
+    
+    // Liberar el dataset (ya no lo necesitamos)
+    liberar_dataset(datos);
+    
+    return historial;
+}
+
 float predecir(Neurona *n, float *entradas) {
     if (n == NULL) {
         mostrar_error("Error: Neurona nula en predecir.");
         return 0.0f;
+    }
+    
+    return forward_propagation(n, entradas);
+}
+
+/**
+ * predecir_con_validacion - Predicción con validación de entrada
+ * 
+ * ★ NUEVA FUNCIÓN: Seguridad en predicciones ★
+ * 
+ * PARÁMETROS:
+ *   n        - Puntero a la neurona (ya entrenada)
+ *   entradas - Arreglo de valores de entrada
+ *   num_entradas - Número de entradas (para validación)
+ * 
+ * RETORNO:
+ *   Salida de la neurona (entre 0 y 1), o -1.0f si falla
+ */
+float predecir_con_validacion(Neurona *n, float *entradas, int num_entradas) {
+    if (n == NULL) {
+        mostrar_error("Error: Neurona nula en predecir_con_validacion.");
+        return -1.0f;
+    }
+    
+    if (entradas == NULL) {
+        mostrar_error("Error: Arreglo de entradas nulo en predecir_con_validacion.");
+        return -1.0f;
+    }
+    
+    if (num_entradas != n->num_entradas) {
+        char mensaje[256];
+        sprintf(mensaje, "Error: Número de entradas incorrecto. Esperadas: %d, Recibidas: %d",
+                n->num_entradas, num_entradas);
+        mostrar_error(mensaje);
+        return -1.0f;
     }
     
     return forward_propagation(n, entradas);
@@ -350,345 +411,7 @@ void liberar_configuracion(Configuracion *config) {
 }
 
 // ================================================================
-// 5. FUNCIONES DE DATASET - CON VALIDACIÓN COMPLETA
-// ================================================================
-
-/*validar_y_convertir_numero - Valida que una cadena sea un número válido
-  
-   VALIDACIÓN COMPLETA
-  - Rechaza cadenas vacías
-  - Rechaza caracteres no numéricos (letras, símbolos)
-  - Acepta números con punto decimal
-  - Trunca a 2 decimales (PRECISION_DECIMAL) para controlar precisión
-  
-  PARÁMETROS:
-    cadena - Texto a validar
-    valor  - Puntero donde guardar el número convertido
-  
-  RETORNO:
-    1 si es número válido, 0 si no*/
-int validar_y_convertir_numero(const char *cadena, float *valor) {
-    // Validar que la cadena no sea nula o vacía
-    if (cadena == NULL || cadena[0] == '\0') {
-        return 0;
-    }
-    
-    // Verificar que solo tenga caracteres numéricos, punto y signo negativo
-    int tiene_punto = 0;
-    int tiene_signo = 0;
-    int tiene_digito = 0;
-    
-    for (int i = 0; cadena[i] != '\0'; i++) {
-        char c = cadena[i];
-        
-        // Permitir espacio al inicio (lo ignoramos)
-        if (i == 0 && c == ' ') continue;
-        
-        // Permitir signo negativo solo al inicio
-        if (c == '-' && i == 0 && !tiene_signo) {
-            tiene_signo = 1;
-            continue;
-        }
-        
-        // Permitir punto decimal (solo uno)
-        if (c == '.' && !tiene_punto) {
-            tiene_punto = 1;
-            continue;
-        }
-        
-        // Verificar que sea un dígito
-        if (c >= '0' && c <= '9') {
-            tiene_digito = 1;
-            continue;
-        }
-        
-        // Si llegamos aquí, el carácter no es válido
-        return 0;
-    }
-    
-    // Debe tener al menos un dígito
-    if (!tiene_digito) {
-        return 0;
-    }
-    
-    // Convertir la cadena a número
-    char *endptr;
-    float temp = strtof(cadena, &endptr);
-    
-    // Verificar que la conversión fue exitosa
-    if (endptr == cadena || *endptr != '\0') {
-        return 0;
-    }
-    
-    // ★ TRUNCAR A 2 DECIMALES (MODIFICABLE) ★
-    // Suficiente para el aprendizaje de la neurona
-    // ★ MODIFICAR PRECISION_DECIMAL para cambiar precisión ★
-    *valor = (float)((int)(temp * PRECISION_DECIMAL)) / PRECISION_DECIMAL;
-    
-    return 1;
-}
-
-Dataset* cargar_dataset(const char *nombre_archivo) {
-    if (nombre_archivo == NULL) {
-        mostrar_error("Error: Nombre de archivo nulo en cargar_dataset.");
-        return NULL;
-    }
-    
-    FILE *f = fopen(nombre_archivo, "r");
-    if (f == NULL) {
-        char mensaje[256];
-        sprintf(mensaje, "Error: No se pudo abrir el archivo '%s'.", nombre_archivo);
-        mostrar_error(mensaje);
-        return NULL;
-    }
-    
-    // PRIMERA PASADA: Contar líneas y características
-    int num_muestras = 0;
-    int num_caracteristicas = 0;
-    char linea[1024];
-    
-    while (fgets(linea, sizeof(linea), f)) {
-        // Ignorar líneas vacías o con solo comentarios
-        int es_comentario = 0;
-        for (int i = 0; linea[i] != '\0'; i++) {
-            if (linea[i] == '#' || linea[i] == '\n' || linea[i] == '\r') {
-                break;
-            }
-            if (linea[i] != ' ' && linea[i] != '\t') {
-                es_comentario = 1;
-                break;
-            }
-        }
-        if (!es_comentario) continue;
-        
-        if (num_muestras == 0) {
-            // Contar columnas en la primera línea válida
-            num_caracteristicas = contar_columnas_csv(linea);
-            if (num_caracteristicas <= 1) {
-                mostrar_error("Error: El CSV debe tener al menos 2 columnas (entradas + salida).");
-                fclose(f);
-                return NULL;
-            }
-            // Restar 1 porque la última columna es la salida esperada
-            num_caracteristicas--;
-        }
-        num_muestras++;
-    }
-    
-    if (num_muestras == 0) {
-        mostrar_error("Error: El archivo CSV está vacío o no contiene datos válidos.");
-        fclose(f);
-        return NULL;
-    }
-    
-    // Reservar memoria para el dataset
-    Dataset *datos = (Dataset*)malloc(sizeof(Dataset));
-    if (datos == NULL) {
-        mostrar_error("Error: No se pudo asignar memoria para el dataset.");
-        fclose(f);
-        return NULL;
-    }
-    
-    datos->num_muestras = num_muestras;
-    datos->num_caracteristicas = num_caracteristicas;
-    datos->entradas = (float**)malloc(num_muestras * sizeof(float*));
-    datos->salidas = (float*)malloc(num_muestras * sizeof(float));
-    
-    if (datos->entradas == NULL || datos->salidas == NULL) {
-        mostrar_error("Error: No se pudo asignar memoria para los datos.");
-        free(datos);
-        fclose(f);
-        return NULL;
-    }
-    
-    for (int i = 0; i < num_muestras; i++) {
-        datos->entradas[i] = (float*)malloc(num_caracteristicas * sizeof(float));
-        if (datos->entradas[i] == NULL) {
-            mostrar_error("Error: No se pudo asignar memoria para una fila del dataset.");
-            // Limpiar memoria ya asignada
-            for (int j = 0; j < i; j++) {
-                free(datos->entradas[j]);
-            }
-            free(datos->entradas);
-            free(datos->salidas);
-            free(datos);
-            fclose(f);
-            return NULL;
-        }
-    }
-    
-    // SEGUNDA PASADA: Leer los datos con validación
-    rewind(f);
-    int muestra_actual = 0;
-    int linea_actual = 0;
-    int errores_encontrados = 0;
-    
-    while (fgets(linea, sizeof(linea), f)) {
-        linea_actual++;
-        
-        // Ignorar líneas vacías o con solo comentarios
-        int es_comentario = 0;
-        for (int i = 0; linea[i] != '\0'; i++) {
-            if (linea[i] == '#' || linea[i] == '\n' || linea[i] == '\r') {
-                break;
-            }
-            if (linea[i] != ' ' && linea[i] != '\t') {
-                es_comentario = 1;
-                break;
-            }
-        }
-        if (!es_comentario) continue;
-        
-        // Eliminar salto de línea
-        size_t len = strlen(linea);
-        if (len > 0 && (linea[len-1] == '\n' || linea[len-1] == '\r')) {
-            linea[len-1] = '\0';
-        }
-        if (len > 1 && linea[len-2] == '\r') {
-            linea[len-2] = '\0';
-        }
-        
-        // Dividir la línea por el separador
-        char *tokens[100];
-        int num_tokens = 0;
-        char *token = strtok(linea, ";");
-        while (token != NULL && num_tokens < 100) {
-            // Eliminar espacios al inicio y final
-            while (*token == ' ' || *token == '\t') token++;
-            char *end = token + strlen(token) - 1;
-            while (end > token && (*end == ' ' || *end == '\t')) end--;
-            *(end + 1) = '\0';
-            
-            tokens[num_tokens++] = token;
-            token = strtok(NULL, ";");
-        }
-        
-        // Verificar que tenga el número correcto de columnas
-        int columnas_esperadas = num_caracteristicas + 1;
-        if (num_tokens != columnas_esperadas) {
-            char mensaje[256];
-            sprintf(mensaje, "Error: Línea %d tiene %d columnas, se esperaban %d.",
-                    linea_actual, num_tokens, columnas_esperadas);
-            mostrar_error(mensaje);
-            errores_encontrados++;
-            continue;
-        }
-        
-        // Validar y convertir cada valor
-        int columna_actual = 0;
-        int error_fila = 0;
-        
-        // Leer entradas
-        for (int j = 0; j < num_caracteristicas; j++) {
-            float valor;
-            if (!validar_y_convertir_numero(tokens[j], &valor)) {
-                char mensaje[256];
-                sprintf(mensaje, "Error: Línea %d, columna %d: '%s' no es un número válido.",
-                        linea_actual, j + 1, tokens[j]);
-                mostrar_error(mensaje);
-                errores_encontrados++;
-                error_fila = 1;
-                break;
-            }
-            datos->entradas[muestra_actual][j] = valor;
-        }
-        
-        if (error_fila) continue;
-        
-        // Leer salida esperada (última columna)
-        float salida;
-        if (!validar_y_convertir_numero(tokens[num_tokens - 1], &salida)) {
-            char mensaje[256];
-            sprintf(mensaje, "Error: Línea %d, última columna: '%s' no es un número válido.",
-                    linea_actual, tokens[num_tokens - 1]);
-            mostrar_error(mensaje);
-            errores_encontrados++;
-            continue;
-        }
-        datos->salidas[muestra_actual] = salida;
-        
-        muestra_actual++;
-    }
-    
-    fclose(f);
-    
-    // Verificar si hubo errores
-    if (errores_encontrados > 0) {
-        char mensaje[256];
-        sprintf(mensaje, "Error: Se encontraron %d errores en el archivo CSV.", 
-                errores_encontrados);
-        mostrar_error(mensaje);
-        liberar_dataset(datos);
-        return NULL;
-    }
-    
-    // Verificar que se leyeron todas las muestras
-    if (muestra_actual != num_muestras) {
-        mostrar_error("Error: No se pudieron leer todas las muestras del CSV.");
-        liberar_dataset(datos);
-        return NULL;
-    }
-    
-    // ★ DEPURACIÓN: Mostrar información del dataset ★
-    printf("  [Depuración] Dataset cargado exitosamente:\n");
-    printf("    - Muestras: %d\n", datos->num_muestras);
-    printf("    - Características: %d\n", datos->num_caracteristicas);
-    printf("  [Depuración] Primeras 3 muestras:\n");
-    for (int i = 0; i < 3 && i < datos->num_muestras; i++) {
-        printf("    Muestra %d: ", i + 1);
-        for (int j = 0; j < datos->num_caracteristicas; j++) {
-            printf("%.2f ", datos->entradas[i][j]);
-        }
-        printf("→ %.2f\n", datos->salidas[i]);
-    }
-    
-    return datos;
-}
-
-void liberar_dataset(Dataset *datos) {
-    if (datos != NULL) {
-        if (datos->entradas != NULL) {
-            for (int i = 0; i < datos->num_muestras; i++) {
-                if (datos->entradas[i] != NULL) {
-                    free(datos->entradas[i]);
-                    datos->entradas[i] = NULL;
-                }
-            }
-            free(datos->entradas);
-            datos->entradas = NULL;
-        }
-        if (datos->salidas != NULL) {
-            free(datos->salidas);
-            datos->salidas = NULL;
-        }
-        free(datos);
-        datos = NULL;
-    }
-}
-
-void normalizar_dataset(Dataset *datos, float max_valor) {
-    if (datos == NULL) {
-        mostrar_error("Error: Dataset nulo en normalizar_dataset.");
-        return;
-    }
-    
-    if (max_valor <= 0.0f) {
-        mostrar_error("Error: max_valor debe ser mayor a 0 en normalizar_dataset.");
-        return;
-    }
-    
-    for (int i = 0; i < datos->num_muestras; i++) {
-        for (int j = 0; j < datos->num_caracteristicas; j++) {
-            datos->entradas[i][j] = datos->entradas[i][j] / max_valor;
-            // Asegurar que esté en el rango [0, 1]
-            if (datos->entradas[i][j] < 0.0f) datos->entradas[i][j] = 0.0f;
-            if (datos->entradas[i][j] > 1.0f) datos->entradas[i][j] = 1.0f;
-        }
-    }
-}
-
-// ================================================================
-// 6. FUNCIONES DE DEPURACIÓN Y VISUALIZACIÓN
+// 5. FUNCIONES DE DEPURACIÓN Y VISUALIZACIÓN
 // ================================================================
 
 void imprimir_estado_neurona(Neurona *n) {
@@ -795,6 +518,104 @@ int guardar_pesos_archivo(Neurona *n, const char *nombre_archivo) {
 }
 
 // ================================================================
+// 6. FUNCIONES DE CARGA DE PESOS (NUEVAS)
+// ================================================================
+
+/**
+ * cargar_pesos_archivo - Carga pesos desde un archivo de texto
+ * 
+ * ★ NUEVA FUNCIÓN: Carga pesos previamente guardados ★
+ * 
+ * PARÁMETROS:
+ *   n            - Puntero a la neurona (ya creada)
+ *   nombre_archivo - Nombre del archivo a cargar
+ * 
+ * RETORNO:
+ *   1 si se cargó correctamente, 0 si falló
+ */
+int cargar_pesos_archivo(Neurona *n, const char *nombre_archivo) {
+    if (n == NULL) {
+        mostrar_error("Error: Neurona nula en cargar_pesos_archivo.");
+        return 0;
+    }
+    
+    if (nombre_archivo == NULL) {
+        mostrar_error("Error: Nombre de archivo nulo en cargar_pesos_archivo.");
+        return 0;
+    }
+    
+    FILE *f = fopen(nombre_archivo, "r");
+    if (f == NULL) {
+        char mensaje[256];
+        sprintf(mensaje, "Error: No se pudo abrir el archivo '%s' para cargar.",
+                nombre_archivo);
+        mostrar_error(mensaje);
+        return 0;
+    }
+    
+    char linea[256];
+    int pesos_cargados = 0;
+    int bias_cargado = 0;
+    
+    while (fgets(linea, sizeof(linea), f)) {
+        // Ignorar comentarios
+        if (linea[0] == '#') continue;
+        
+        // Eliminar salto de línea
+        size_t len = strlen(linea);
+        if (len > 0 && (linea[len-1] == '\n' || linea[len-1] == '\r')) {
+            linea[len-1] = '\0';
+        }
+        
+        // Buscar BIAS
+        if (strncmp(linea, "BIAS=", 5) == 0) {
+            float bias;
+            if (sscanf(linea + 5, "%f", &bias) == 1) {
+                n->bias = bias;
+                bias_cargado = 1;
+                printf("  [Depuración] Bias cargado: %.6f\n", bias);
+            }
+        }
+        
+        // Buscar PESOS
+        if (strncmp(linea, "PESOS=", 6) == 0) {
+            char *p = linea + 6;
+            int idx = 0;
+            char *token = strtok(p, ",");
+            
+            while (token != NULL && idx < n->num_entradas) {
+                float peso;
+                if (sscanf(token, "%f", &peso) == 1) {
+                    n->pesos[idx] = peso;
+                    idx++;
+                }
+                token = strtok(NULL, ",");
+            }
+            
+            if (idx == n->num_entradas) {
+                pesos_cargados = 1;
+                printf("  [Depuración] %d pesos cargados.\n", idx);
+            } else {
+                char mensaje[256];
+                sprintf(mensaje, "Error: Se esperaban %d pesos, se cargaron %d.",
+                        n->num_entradas, idx);
+                mostrar_error(mensaje);
+            }
+        }
+    }
+    
+    fclose(f);
+    
+    if (pesos_cargados && bias_cargado) {
+        printf("  [Depuración] Pesos y bias cargados correctamente.\n");
+        return 1;
+    } else {
+        mostrar_error("Error: No se pudieron cargar todos los datos del archivo.");
+        return 0;
+    }
+}
+
+// ================================================================
 // 7. FUNCIONES DE MANEJO DE ERRORES
 // ================================================================
 
@@ -806,63 +627,6 @@ void mostrar_error(const char *mensaje) {
     
     // ★ Si se usa raylib, aquí se puede mostrar en pantalla ★
     // Ejemplo: DrawText(mensaje, 10, 10, 20, RED);
-}
-
-// ================================================================
-// 8. FUNCIONES DE AYUDA Y UTILERÍA
-// ================================================================
-
-int contar_lineas_archivo(FILE *archivo) {
-    if (archivo == NULL) {
-        mostrar_error("Error: Archivo nulo en contar_lineas_archivo.");
-        return 0;
-    }
-    
-    int lineas = 0;
-    char buffer[1024];
-    long pos = ftell(archivo);
-    
-    rewind(archivo);
-    while (fgets(buffer, sizeof(buffer), archivo)) {
-        // Ignorar líneas vacías o con solo comentarios
-        int es_valida = 0;
-        for (int i = 0; buffer[i] != '\0'; i++) {
-            if (buffer[i] == '#' || buffer[i] == '\n' || buffer[i] == '\r') {
-                break;
-            }
-            if (buffer[i] != ' ' && buffer[i] != '\t') {
-                es_valida = 1;
-                break;
-            }
-        }
-        if (es_valida) lineas++;
-    }
-    
-    fseek(archivo, pos, SEEK_SET);
-    return lineas;
-}
-
-int contar_columnas_csv(const char *linea) {
-    if (linea == NULL) return 0;
-    
-    int columnas = 0;
-    int en_campo = 0;
-    
-    for (int i = 0; linea[i] != '\0' && linea[i] != '\n' && linea[i] != '\r'; i++) {
-        if (linea[i] == SEPARADOR_CSV) {
-            if (en_campo) {
-                columnas++;
-                en_campo = 0;
-            }
-        } else if (linea[i] != ' ' && linea[i] != '\t') {
-            if (!en_campo) {
-                en_campo = 1;
-            }
-        }
-    }
-    if (en_campo) columnas++;
-    
-    return columnas;
 }
 
 // ================================================================
