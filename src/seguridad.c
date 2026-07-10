@@ -1,61 +1,86 @@
-#define _WIN32_WINNT 0x0501
+#define WIN32_WINNT 0x0501
 #include <windows.h>
 #include "seguridad.h"
 
-// Variable global (ahora solo vive en este archivo)
-HHOOK g_hHook = NULL;
+// Variable estática para almacenar el manejador del hook y limitar su alcance a este módulo.
+static HHOOK ghHook = NULL;
 
+/* Evalúa los Virtual Key Codes (VK) para permitir únicamente la entrada de caracteres
+ * numéricos, controles de borrado y separadores decimales necesarios para la interfaz. */
 BOOL IsAllowedVk(DWORD vk) {
-    // Números 0-9
+    if (vk == VK_BACK) return TRUE;
+    if (vk == VK_DELETE) return TRUE;
     if (vk >= 0x30 && vk <= 0x39) return TRUE;
-    // Letras A-Z
-    if (vk >= 0x41 && vk <= 0x5A) return TRUE;
-    
+    if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9) return TRUE;
+    if (vk == VK_OEM_PERIOD) return TRUE;
+    if (vk == VK_DECIMAL) return TRUE;
+
     return FALSE;
 }
 
+/* Procedimiento de callback que intercepta los eventos de teclado de bajo nivel (WH_KEYBOARD_LL)
+ * antes de que el sistema operativo o la aplicación los procesen de manera estándar. */
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-    if (nCode == HC_ACTION) {
-        KBDLLHOOKSTRUCT *p = (KBDLLHOOKSTRUCT*)lParam;
-        DWORD vk = p->vkCode;
+    if (nCode < HC_ACTION) {
+        return CallNextHookEx(ghHook, nCode, wParam, lParam);
+    }
 
-        if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
-            BOOL ctrlDown  = (GetAsyncKeyState(VK_LCONTROL) & 0x8000) || (GetAsyncKeyState(VK_RCONTROL) & 0x8000);
-            BOOL altDown   = (GetAsyncKeyState(VK_LMENU) & 0x8000) || (GetAsyncKeyState(VK_RMENU) & 0x8000);
-            BOOL winDown   = (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000);
+    KBDLLHOOKSTRUCT *p = (KBDLLHOOKSTRUCT *)lParam;
+    DWORD vk = p->vkCode;
 
-            BOOL blockThis = FALSE;
+    // Se evalúan las pulsaciones y se descartan combinaciones de teclas con modificadores.
+    if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+        BOOL blockThis = FALSE;
 
-            if (vk == VK_LWIN || vk == VK_RWIN) blockThis = TRUE;
-            if (vk == VK_ESCAPE || vk == VK_DELETE || vk == VK_INSERT) blockThis = TRUE;
-            if (vk >= VK_F1 && vk <= VK_F12) blockThis = TRUE;
-            
-            if (vk == VK_SHIFT    || vk == VK_LSHIFT    || vk == VK_RSHIFT ||
-                vk == VK_CONTROL  || vk == VK_LCONTROL  || vk == VK_RCONTROL ||
-                vk == VK_MENU     || vk == VK_LMENU     || vk == VK_RMENU) {
-                blockThis = TRUE;
-            }
+        BOOL shiftDown = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+        BOOL ctrlDown  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+        BOOL altDown   = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+        BOOL winDown   = (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
 
-            if (ctrlDown || altDown || winDown) blockThis = TRUE;
-            if (!IsAllowedVk(vk)) blockThis = TRUE;
+        if (ctrlDown || altDown || winDown) {
+            blockThis = TRUE;
+        }
 
-            if (blockThis) return 1; // Windows ignora la tecla por completo
+        if (!IsAllowedVk(vk)) {
+            blockThis = TRUE;
+        }
+
+        if (shiftDown && vk >= 0x30 && vk <= 0x39) {
+            blockThis = TRUE;
+        }
+
+        if (shiftDown && vk == VK_OEM_PERIOD) {
+            blockThis = TRUE;
+        }
+
+        if (shiftDown && vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9) {
+            blockThis = TRUE;
+        }
+
+        if (shiftDown && vk == VK_DECIMAL) {
+            blockThis = TRUE;
+        }
+
+        // Si la tecla se marca como bloqueada, se retorna 1 para suprimir su procesamiento.
+        if (blockThis) {
+            return 1;
         }
     }
-    return CallNextHookEx(g_hHook, nCode, wParam, lParam);
+
+    return CallNextHookEx(ghHook, nCode, wParam, lParam);
 }
 
-// ESTO ERA LO QUE TE FALTABA: La función que instala el Hook
+/* Instala el hook en la cadena del sistema operativo para habilitar el filtrado global. */
 void ActivarSeguridadTeclado(void) {
-    if (g_hHook == NULL) {
-        g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(NULL), 0);
+    if (ghHook == NULL) {
+        ghHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, GetModuleHandle(NULL), 0);
     }
 }
 
-// Y la función que lo quita
+/* Remueve el hook activo y restaura el control de entrada estándar del sistema operativo. */
 void DesactivarSeguridadTeclado(void) {
-    if (g_hHook != NULL) {
-        UnhookWindowsHookEx(g_hHook);
-        g_hHook = NULL;
+    if (ghHook != NULL) {
+        UnhookWindowsHookEx(ghHook);
+        ghHook = NULL;
     }
 }
