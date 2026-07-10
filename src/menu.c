@@ -160,7 +160,7 @@ PantallaActual DibujarPantallaEntrenamiento(Neurona **neurona, Dataset *datos, i
     }
 
     if (*entrenando && *epocaActual < totalEpocas) {
-        int epocasPorFrame = 10; 
+        int epocasPorFrame = 1; 
         for(int paso = 0; paso < epocasPorFrame && *epocaActual < totalEpocas; paso++) {
             float error_total = 0.0f;
             for (int i = 0; i < datos->num_muestras; i++) {
@@ -284,7 +284,7 @@ PantallaActual DibujarPantallaPrediccion(Neurona *neurona, Dataset *datos) {
     static int cajaActiva = -1; 
     static float resultadoPrediccion = -1.0f; 
 
-    DrawTextCentradoX("Ingresa los valores de entrada para que la IA adivine:", 160, 30, DARKBLUE);
+    DrawTextCentradoX("Ingresa los valores de entrada para que la neurona adivine:", 160, 30, DARKBLUE);
 
     int startY = 220;
     int centroX = (anchoPantalla / 2) - 150;
