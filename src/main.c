@@ -21,7 +21,7 @@ int main(void) {
     SetWindowSize(anchoPantalla, altoPantalla);
     SetWindowPosition(0, 0);
 
-    ActivarSeguridadTeclado();
+    //ActivarSeguridadTeclado();
 
     // Declaración de punteros a estructuras principales para la gestión del modelo en memoria.
     Dataset *miDataset = NULL; 

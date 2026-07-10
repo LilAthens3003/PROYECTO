@@ -107,7 +107,7 @@ PantallaActual DibujarPantallaVisualizar(Dataset *datos) {
         DrawText("Vista previa de los datos:", 50, 160, 40, DARKBLUE);
         
         int startY = 260; 
-        int limite = (datos->num_muestras > 5) ? 5 : datos->num_muestras; 
+        int limite = (datos->num_muestras > 15) ? 15 : datos->num_muestras; 
         
         for (int i = 0; i < limite; i++) {
             char lineaTexto[512] = ""; 
@@ -127,8 +127,8 @@ PantallaActual DibujarPantallaVisualizar(Dataset *datos) {
             DrawText(lineaTexto, 50, startY + (i * 50), 30, BLACK);
         }
 
-        if (datos->num_muestras > 5) {
-            DrawText(TextFormat("... y %d filas mas.", datos->num_muestras - 5), 50, startY + (5 * 50), 30, GRAY);
+        if (datos->num_muestras > 15) {
+            DrawText(TextFormat("... y %d filas mas.", datos->num_muestras - 15), 50, startY + (15 * 50), 30, GRAY);
         }
     }
 
